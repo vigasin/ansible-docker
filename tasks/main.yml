@@ -46,18 +46,67 @@
     path: "/etc/default/docker"
     state: "absent"
 
+- name: Remove docker machine config file
+  file:
+    path: "/etc/systemd/system/docker.service.d/10-machine.conf"
+    state: "absent"
+
 - name: Ensure systemd directory exists
   file:
-    path: "/etc/systemd/system"
+    path: "/etc/systemd/system/docker.service.d"
     state: "directory"
     owner: "root"
     group: "root"
     mode: "0755"
 
+- name: Ensure docker directory exists
+  file:
+    path: "/etc/docker"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+- name: Put docker daemon.json file
+  template:
+    src: "etc/docker/daemon.json.j2"
+    dest: "/etc/docker/daemon.json"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  register: docker_register_systemd_service
+
+- name: Put docker ca.pem file
+  copy:
+    content: "{{ docker_ca_pem }}"
+    dest: "/etc/docker/ca.pem"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  register: docker_register_systemd_service
+
+- name: Put docker server.pem file
+  copy:
+    content: "{{ docker_server_pem }}"
+    dest: "/etc/docker/server.pem"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  register: docker_register_systemd_service
+
+- name: Put docker server-key.pem file
+  copy:
+    content: "{{ docker_server_key_pem }}"
+    dest: "/etc/docker/server-key.pem"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  register: docker_register_systemd_service
+
 - name: Generate systemd unit file
   template:
-    src: "etc/systemd/system/docker.service.j2"
-    dest: "/etc/systemd/system/docker.service"
+    src: "etc/systemd/system/docker.service.d/docker.conf.j2"
+    dest: "/etc/systemd/system/docker.service.d/docker.conf"
     owner: "root"
     group: "root"
     mode: "0644"
