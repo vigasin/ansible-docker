@@ -4,8 +4,9 @@ services: "docker"
 
 env:
   - distro: "ubuntu1604"
-  - distro: "debian8"
+  - distro: "ubuntu1804"
   - distro: "debian9"
+  - distro: "debian10"
 
 script:
   # Download test shim.
