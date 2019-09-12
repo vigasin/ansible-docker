@@ -1,9 +1,14 @@
+no changes added to commit (use "git add" and/or "git commit -a")
 {
-{% if docker__default_daemon_json | d() %}
-{{ docker__default_daemon_json | indent(2, true) }}
-{%-   if docker__daemon_json | d() %},{% endif %}
-{% endif %}
-{% if docker__daemon_json | d() %}
-{{ docker__daemon_json | indent(2, true) }}
-{% endif %}
+  "debug": false,
+  "tlsverify": true,
+  "tlscacert": "/etc/docker/ca.pem",
+  "tlscert": "/etc/docker/server.pem",
+  "tlskey": "/etc/docker/server-key.pem",
+  "hosts": ["fd://", "tcp://0.0.0.0:2376"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "10"
+  }
 }

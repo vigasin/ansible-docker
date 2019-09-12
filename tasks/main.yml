@@ -59,10 +59,6 @@
     path: "/etc/systemd/system/docker.service.d/10-machine.conf"
     state: "absent"
 
-- name: Ensure systemd directory exists
-  file:
-    path: "/etc/systemd/system/docker.service.d"
-
 - name: Symlink selected Python package binaries to /usr/local/bin
   file:
     path: "{{ item.path }}"
