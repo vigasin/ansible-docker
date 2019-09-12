@@ -162,8 +162,7 @@
 - name: Reload systemd daemon
   systemd:
     daemon_reload: true
-  when: docker__register_daemon_flags is changed
-        or docker__register_daemon_environment is changed
+  when: docker__register_daemon_environment is changed
         or docker__register_custom_override is changed
 
 - name: Restart Docker now to make sure `docker login` works
