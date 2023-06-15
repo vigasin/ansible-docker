@@ -64,7 +64,7 @@
     owner: "root"
     group: "root"
     mode: "0644"
-  register: docker_register_systemd_service
+  notify: ["Restart Docker"]
 
 - name: Put docker ca.pem file
   copy:
@@ -73,7 +73,7 @@
     owner: "root"
     group: "root"
     mode: "0644"
-  register: docker_register_systemd_service
+  notify: ["Restart Docker"]
 
 - name: Put docker server.pem file
   copy:
@@ -82,7 +82,7 @@
     owner: "root"
     group: "root"
     mode: "0644"
-  register: docker_register_systemd_service
+  notify: ["Restart Docker"]
 
 - name: Put docker server-key.pem file
   copy:
@@ -91,7 +91,7 @@
     owner: "root"
     group: "root"
     mode: "0600"
-  register: docker_register_systemd_service
+  notify: ["Restart Docker"]
 
 - name: Install Docker and Docker Compose v2
   retries: 20
