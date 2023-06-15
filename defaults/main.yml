@@ -33,8 +33,7 @@ docker__daemon_json: |
     "max-file": "10"
   }
 
-docker__daemon_flags:
-  - "-H unix://"
+docker__daemon_flags: []
 
 docker__daemon_environment:
   - "AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials"
