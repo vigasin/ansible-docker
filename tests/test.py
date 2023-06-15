@@ -14,6 +14,27 @@ def test_pinned_docker_version(host):
     assert existing_docker_version == docker_version_after_apt_update
 
 
+def test_docker_compose_v2_version(host):
+    assert 0 == host.run("docker compose version").rc
+
+
+def test_pinned_docker_compose_v2_version(host):
+    existing_docker_compose_version = host.check_output(
+        "docker compose version"
+    )
+
+    host.run("sudo apt-get update")
+    host.run("sudo apt-get upgrade")
+    docker_compose_version_after_apt_update = host.check_output(
+        "docker compose version"
+    )
+
+    assert (
+        existing_docker_compose_version
+        == docker_compose_version_after_apt_update
+    )
+
+
 def test_able_to_access_docker_without_root(host):
     assert "docker" in host.user("test").groups
 
@@ -48,15 +69,15 @@ def test_customized_systemd_override(host):
     assert "ATest" in file_contents
 
 
-def test_docker_compose_is_pip_installed_and_symlinked(host):
+def test_docker_compose_v1_is_pip_installed_and_symlinked(host):
     assert 0 == host.run("docker-compose --version").rc
-
-
-def test_python_docker_is_symlinked(host):
-    assert 0 == host.run("python-docker --version").rc
 
 
 def test_docker_clean_up_cron_job(host):
     cron_conf = host.file("/etc/cron.d/docker-disk-clean-up").content_string
 
     assert "test docker system prune -af" in cron_conf
+
+
+def test_python_docker_module(host):
+    assert 0 == host.run("python3-docker -c 'import docker'").rc

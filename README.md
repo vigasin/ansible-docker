@@ -1,9 +1,9 @@
-## What is ansible-docker? [![Build Status](https://secure.travis-ci.org/nickjj/ansible-docker.png)](http://travis-ci.org/nickjj/ansible-docker)
+## What is ansible-docker? ![CI](https://github.com/nickjj/ansible-docker/workflows/CI/badge.svg?branch=master)
 
 It is an [Ansible](http://www.ansible.com/home) role to:
 
 - Install Docker (editions, channels and version pinning are all supported)
-- Install Docker Compose using PIP (version pinning is supported)
+- Install Docker Compose v1 and Docker Compose v2 (version pinning is supported)
 - Install the `docker` PIP package so Ansible's `docker_*` modules work
 - Manage Docker registry login credentials
 - Configure 1 or more users to run Docker without needing root access
@@ -21,15 +21,15 @@ with it then check out
 
 ## Supported platforms
 
-- Ubuntu 16.04 LTS (Xenial)
-- Ubuntu 18.04 LTS (Bionic)
-- Debian 9 (Stretch)
+- Ubuntu 20.04 LTS (Focal Fossa)
+- Ubuntu 22.04 LTS (Jammy Jellyfish)
 - Debian 10 (Buster)
+- Debian 11 (Bullseye)
 
 ---
 
 *You are viewing the master branch's documentation which might be ahead of the
-latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v1.9.1).*
+latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v2.2.0).*
 
 ---
 
@@ -40,8 +40,9 @@ a way to customize nearly everything.
 
 ### What's configured by default?
 
-The latest Docker CE and Docker Compose will be installed, Docker disk clean up
-will happen once a week and Docker container logs will be sent to `journald`.
+The latest Docker CE, Docker Compose v1 and Docker Compose v2 will be
+installed, Docker disk clean up will happen once a week and Docker container
+logs will be sent to `journald`.
 
 ### Example playbook
 
@@ -94,11 +95,11 @@ docker__channel: ["stable"]
 ```yml
 docker__version: ""
 
-# For example, pin it to 18.06.
-docker__version: "18.06"
+# For example, pin it to 20.10.
+docker__version: "20.10"
 
-# For example, pin it to a more precise version of 18.06.
-docker__version: "18.06.1"
+# For example, pin it to a more precise version of 20.10.
+docker__version: "20.10.17"
 ```
 
 *Pins are set with `*` at the end of the package version so you will end up
@@ -127,25 +128,67 @@ ansible all -m systemd -a "name=docker-ce state=stopped" \
   -m apt -a "name=docker-ce autoremove=true purge=true state=absent" -b
 ```
 
-### Installing Docker Compose
+### Installing Docker Compose v2
 
-Docker Compose will get PIP installed inside of a Virtualenv. This is covered
-in detail in another section of this README file.
+Docker Compose v2 will get apt installed using the official
+`docker-compose-plugin` that Docker manages.
 
 #### Version
 
-- When set to "", the current latest version of Docker Compose will be installed
-- When set to a specific version, that version of Docker Compose will be installed
+- When set to "", the current latest version of Docker Compose v2 will be installed
+- When set to a specific version, that version of Docker Compose v2 will be installed
+and pinned
+
+```yml
+docker__compose_v2_version: ""
+
+# For example, pin it to 2.6.
+docker__compose_v2_version: "2.6"
+
+# For example, pin it to a more precise version of 2.6.
+docker__compose_v2_version: "2.6.0"
+```
+
+##### Upgrade strategy
+
+It'll re-use the `docker__state` variable explained above in the Docker section
+with the same rules.
+
+##### Downgrade strategy
+
+Like Docker itself, the easiest way to uninstall Docker Compose v2 is to manually
+run the command below and then pin a specific Docker Compose v2 version.
+
+```sh
+# An ad-hoc Ansible command to remove the Docker Compose Plugin package on all hosts.
+ansible all -m apt -a "name=docker-compose-plugin autoremove=true purge=true state=absent" -b
+```
+
+### Installing Docker Compose v1
+
+Docker Compose v1 will get PIP installed inside of a Virtualenv. If you plan to
+use Docker Compose v2 instead it will be very easy to skip installing v1
+although technically both can be installed together since v1 is accessed with
+`docker-compose` and v2 is accessed with `docker compose` (notice the lack of
+hyphen).
+
+In any case details about this is covered in detail in a later section of this
+README file.
+
+#### Version
+
+- When set to "", the current latest version of Docker Compose v1 will be installed
+- When set to a specific version, that version of Docker Compose v1 will be installed
 and pinned
 
 ```yml
 docker__compose_version: ""
 
-# For example, pin it to 1.23.
-docker__compose_version: "1.23"
+# For example, pin it to 1.29.
+docker__compose_version: "1.29"
 
-# For example, pin it to a more precise version of 1.23.
-docker__compose_version: "1.23.2"
+# For example, pin it to a more precise version of 1.29.
+docker__compose_version: "1.29.2"
 ```
 
 *Upgrade and downgrade strategies will be explained in the other section of this
@@ -182,6 +225,12 @@ Login to 1 or more Docker registries (such as the
 [Docker Hub](https://hub.docker.com/)).
 
 ```yml
+# Your login credentials will end up in this user's home directory.
+docker__login_become_user: "{{ docker__users | first | d('root') }}"
+```
+
+```yml
+# 0 or more registries to log into.
 docker__registries:
   - #registry_url: "https://index.docker.io/v1/"
     username: "your_docker_hub_username"
@@ -200,7 +249,7 @@ docker__registries: []
 - *`password` is your Docker registry password
 - `email` defaults to not being used (not all registries use it)
 - `reauthorize` defaults to `false`, when `true` it updates your credentials
-- `config_path` defaults to `(ansible_env.PWD | d('/root')) + '/.docker/config.json'`
+- `config_path` defaults to your `docker__login_become_user`'s `$HOME` directory
 - `state` defaults to "present", when "absent" the login will be removed
 
 ### Configuring the Docker daemon options (json)
@@ -209,7 +258,10 @@ Default Docker daemon options as they would appear in `/etc/docker/daemon.json`.
 
 ```yml
 docker__default_daemon_json: |
-  "log-driver": "journald"
+  "log-driver": "journald",
+  "features": {
+    "buildkit": true
+  }
 
 # Add your own additional daemon options without overriding the default options.
 # It follows the same format as the default options, and don't worry about
@@ -308,6 +360,14 @@ docker__package_dependencies:
   - "gnupg2"
   - "software-properties-common"
 
+# Ansible identifies CPU architectures differently than Docker.
+docker__architecture_map:
+  "x86_64": "amd64"
+  "aarch64": "arm64"
+  "aarch": "arm64"
+  "armhf": "armhf"
+  "armv7l": "armhf"
+
 # The Docker GPG key id used to sign the Docker package.
 docker__apt_key_id: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 
@@ -316,7 +376,7 @@ docker__apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution 
 
 # The Docker upstream APT repository.
 docker__apt_repository: >
-  deb [arch=amd64]
+  deb [arch={{ docker__architecture_map[ansible_architecture] }}]
   https://download.docker.com/linux/{{ ansible_distribution | lower }}
   {{ ansible_distribution_release }} {{ docker__channel | join (' ') }}
 ```
@@ -334,16 +394,17 @@ docker__pip_virtualenv: "/usr/local/lib/docker/virtualenv"
 
 #### Installing PIP and its dependencies
 
-This role installs PIP because Docker Compose is installed with the
+This role installs PIP because Docker Compose v1 is installed with the
 `docker-compose` PIP package and Ansible's `docker_*` modules use the `docker`
 PIP package.
 
 ```yml
-# This will attempt to install the correct version of PIP based on what your
-# configured Ansible Python interpreter is set to (ie. Python 2 or 3).
 docker__pip_dependencies:
-  - "python-setuptools"
-  - "python{{ '3' if ansible_python.version.major == 3 else '' }}-pip"
+  - "gcc"
+  - "python3-setuptools"
+  - "python3-dev"
+  - "python3-pip"
+  - "virtualenv"
 ```
 
 #### Installing PIP packages
@@ -383,6 +444,15 @@ docker__pip_docker_state: "present"
 docker__pip_docker_compose_state: "present"
 ```
 
+##### Skipping the installation of Docker Compose v1
+
+You can set `docker__pip_docker_compose_state: "absent"` in your inventory.
+That's it!
+
+Honestly, in the future I think this will be the default behavior. Since Docker
+Compsose v2 is still fairly new I wanted to ease into using v2. There's also no
+harm in having both installed together. You can pick which one to use.
+
 #### Working with Ansible's `docker_*` modules
 
 This role uses `docker_login` to login to a Docker registry, but you may also
@@ -390,8 +460,9 @@ use the other `docker_*` modules in your own roles. They are not going to work
 unless you instruct Ansible to use this role's Virtualenv.
 
 At either the inventory, playbook or task level you'll need to set
-`ansible_python_interpreter: "/usr/bin/env python-docker"`. This works because
-this role symlinks the Virtualenv's Python binary to `python-docker`.
+`ansible_python_interpreter: "/usr/bin/env python3-docker"`. This works because
+this role creates a proxy script from the Virtualenv's Python binary to
+`python3-docker`.
 
 You can look at this role's `docker_login` task as an example on how to do it
 at the task level.
