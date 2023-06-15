@@ -15,12 +15,6 @@ docker__login_become_user: "{{ docker__users | first | d('root') }}"
 docker__registries: []
 
 docker__default_daemon_json: |
-  "log-driver": "journald",
-  "features": {
-    "buildkit": true
-  }
-
-docker__daemon_json: |
   "debug": false,
   "tlsverify": true,
   "tlscacert": "/etc/docker/ca.pem",
@@ -32,6 +26,8 @@ docker__daemon_json: |
     "max-size": "100m",
     "max-file": "10"
   }
+
+docker__daemon_json: ""
 
 docker__daemon_flags: []
 
