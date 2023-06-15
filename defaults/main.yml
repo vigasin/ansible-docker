@@ -20,12 +20,24 @@ docker__default_daemon_json: |
     "buildkit": true
   }
 
-docker__daemon_json: ""
+docker__daemon_json: |
+  "debug": false,
+  "tlsverify": true,
+  "tlscacert": "/etc/docker/ca.pem",
+  "tlscert": "/etc/docker/server.pem",
+  "tlskey": "/etc/docker/server-key.pem",
+  "hosts": ["fd://", "tcp://0.0.0.0:2376"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m",
+    "max-file": "10"
+  }
 
 docker__daemon_flags:
   - "-H unix://"
 
-docker__daemon_environment: []
+docker__daemon_environment:
+  - "AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials"
 
 docker__systemd_override: ""
 
