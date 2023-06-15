@@ -46,10 +46,6 @@
     repo: "{{ docker__apt_repository }}"
     update_cache: true
 
-- name: Install Virtualenv
-  pip:
-    name: "virtualenv"
-
 - name: Create Docker configuration directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -60,14 +56,6 @@
   loop:
     - "/etc/docker"
     - "/etc/systemd/system/docker.service.d"
-
-- name: Ensure docker directory exists
-  file:
-    path: "/etc/docker"
-    state: "directory"
-    owner: "root"
-    group: "root"
-    mode: "0700"
 
 - name: Configure Docker daemon options (json)
   ansible.builtin.template:
