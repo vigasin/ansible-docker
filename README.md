@@ -3,7 +3,7 @@
 It is an [Ansible](http://www.ansible.com/home) role to:
 
 - Install Docker (editions, channels and version pinning are all supported)
-- Install Docker Compose v1 and Docker Compose v2 (version pinning is supported)
+- Install Docker Compose v2 and / or Docker Compose v1 (version pinning is supported)
 - Install the `docker` PIP package so Ansible's `docker_*` modules work
 - Manage Docker registry login credentials
 - Configure 1 or more users to run Docker without needing root access
@@ -23,13 +23,15 @@ with it then check out
 
 - Ubuntu 20.04 LTS (Focal Fossa)
 - Ubuntu 22.04 LTS (Jammy Jellyfish)
-- Debian 10 (Buster)
 - Debian 11 (Bullseye)
+- Debian 12 (Bookworm)
+
+Previous releases may or may not work but they're not officially supported.
 
 ---
 
 *You are viewing the master branch's documentation which might be ahead of the
-latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v2.2.0).*
+latest release. [Switch to the latest release](https://github.com/nickjj/ansible-docker/tree/v2.4.0).*
 
 ---
 
@@ -40,9 +42,9 @@ a way to customize nearly everything.
 
 ### What's configured by default?
 
-The latest Docker CE, Docker Compose v1 and Docker Compose v2 will be
-installed, Docker disk clean up will happen once a week and Docker container
-logs will be sent to `journald`.
+The latest stable release of Docker CE and Docker Compose v2 will be installed,
+Docker disk clean up will happen once a week and Docker container logs will be
+sent to `journald`.
 
 ### Example playbook
 
@@ -70,18 +72,10 @@ Usage: `ansible-playbook docker.yml`
 
 ### Installing Docker
 
-#### Edition
-
-Do you want to use "ce" (community edition) or "ee" (enterprise edition)?
-
-```yml
-docker__edition: "ce"
-```
-
 #### Channel
 
-Do you want to use the "stable", "edge", "testing" or "nightly" channels? You
-can add more than one (order matters).
+Do you want to use the "stable" or "test" channel? You can add more than one
+(order matters).
 
 ```yml
 docker__channel: ["stable"]
@@ -95,11 +89,11 @@ docker__channel: ["stable"]
 ```yml
 docker__version: ""
 
-# For example, pin it to 20.10.
-docker__version: "20.10"
+# For example, pin it to 24.0.
+docker__version: "24.0"
 
-# For example, pin it to a more precise version of 20.10.
-docker__version: "20.10.17"
+# For example, pin it to a more precise version of 24.0.
+docker__version: "24.0.6"
 ```
 
 *Pins are set with `*` at the end of the package version so you will end up
@@ -142,11 +136,11 @@ and pinned
 ```yml
 docker__compose_v2_version: ""
 
-# For example, pin it to 2.6.
-docker__compose_v2_version: "2.6"
+# For example, pin it to 2.21.
+docker__compose_v2_version: "2.21"
 
-# For example, pin it to a more precise version of 2.6.
-docker__compose_v2_version: "2.6.0"
+# For example, pin it to a more precise version of 2.21.
+docker__compose_v2_version: "2.21.0"
 ```
 
 ##### Upgrade strategy
@@ -166,14 +160,19 @@ ansible all -m apt -a "name=docker-compose-plugin autoremove=true purge=true sta
 
 ### Installing Docker Compose v1
 
-Docker Compose v1 will get PIP installed inside of a Virtualenv. If you plan to
-use Docker Compose v2 instead it will be very easy to skip installing v1
-although technically both can be installed together since v1 is accessed with
+By default this role doesn't install Docker Compose v1 since it's been
+officially deprecated and no longer receives updates by Docker. However, this
+role is capable of installing it. All you have to do is set
+`docker__pip_docker_compose_state: "present"` since this role defaults to
+`absent` for this value.
+
+Technically both versions can be installed together since v1 is accessed with
 `docker-compose` and v2 is accessed with `docker compose` (notice the lack of
 hyphen).
 
-In any case details about this is covered in detail in a later section of this
-README file.
+I'd suggest not installing v1 unless you really need it for legacy purposes. If
+you do decide to install it you can configure which version gets installed
+below. If it's not set to be installed these versions are left unused:
 
 #### Version
 
@@ -368,17 +367,18 @@ docker__architecture_map:
   "armhf": "armhf"
   "armv7l": "armhf"
 
-# The Docker GPG key id used to sign the Docker package.
-docker__apt_key_id: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+# The Docker GPG key URL.
+docker__apt_repository_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
 
-# The Docker GPG key server address.
-docker__apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+# The Docker GPG key checksum value.
+docker__apt_key_checksum: "sha256:1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570"
 
 # The Docker upstream APT repository.
 docker__apt_repository: >
-  deb [arch={{ docker__architecture_map[ansible_architecture] }}]
-  https://download.docker.com/linux/{{ ansible_distribution | lower }}
-  {{ ansible_distribution_release }} {{ docker__channel | join (' ') }}
+  deb [arch={{ docker__architecture_map[ansible_architecture] }}
+  signed-by=/etc/apt/keyrings/docker.asc]
+  {{ docker__apt_repository_url }}
+  {{ ansible_distribution_release }} {{ docker__channel | join(' ') }}
 ```
 
 ### Installing Python packages with Virtualenv and PIP
@@ -437,21 +437,12 @@ docker__pip_packages: []
 future runs
 - When set to `"forcereinstall"`, the package will always be (re)installed and
 updated on future runs
-- When set to `"absent"`, the package will be removed
+- When set to `"absent"`, the package will be skipped or removed
 
 ```yml
 docker__pip_docker_state: "present"
-docker__pip_docker_compose_state: "present"
+docker__pip_docker_compose_state: "absent"
 ```
-
-##### Skipping the installation of Docker Compose v1
-
-You can set `docker__pip_docker_compose_state: "absent"` in your inventory.
-That's it!
-
-Honestly, in the future I think this will be the default behavior. Since Docker
-Compsose v2 is still fairly new I wanted to ease into using v2. There's also no
-harm in having both installed together. You can pick which one to use.
 
 #### Working with Ansible's `docker_*` modules
 

@@ -36,10 +36,22 @@
   ansible.builtin.apt:
     name: "{{ docker__package_dependencies + docker__pip_dependencies }}"
 
-- name: Add Docker's public GPG key to the APT keyring
-  ansible.builtin.apt_key:
-    id: "{{ docker__apt_key_id }}"
-    url: "{{ docker__apt_key_url }}"
+- name: Create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: "/etc/apt/keyrings"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+
+- name: Add Docker's APT repository key
+  ansible.builtin.get_url:
+    url: "{{ docker__apt_repository_url }}/gpg"
+    dest: "/etc/apt/keyrings/docker.asc"
+    checksum: "{{ docker__apt_key_checksum }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
 
 - name: Configure Docker's upstream APT repository
   ansible.builtin.apt_repository:
@@ -98,7 +110,7 @@
   delay: 15
   ansible.builtin.apt:
     name:
-      - "docker-{{ docker__edition }}"
+      - "docker-ce"
       - "docker-compose-plugin"
     state: "{{ docker__state }}"
 
@@ -112,7 +124,7 @@
   loop: "{{ docker__default_pip_packages + docker__pip_packages }}"
   when: item.name | d()
 
-- name: Create python3-docker proxy script to access the Virtualenv's interpreter
+- name: Create python3-docker proxy script to access Virtualenv's interpreter
   ansible.builtin.template:
     src: "usr/local/bin/python3-docker.j2"
     dest: "/usr/local/bin/python3-docker"
@@ -171,7 +183,7 @@
 # It's safe to ignore no-log-password because we're removing the password from
 # the output with the loop_control property.
 - name: Manage Docker registry login credentials
-  ansible.builtin.docker_login:  # noqa no-log-password
+  community.docker.docker_login:  # noqa no-log-password
     registry_url: "{{ item.registry_url | d(omit) }}"
     username: "{{ item.username }}"
     password: "{{ item.password }}"
@@ -181,7 +193,7 @@
     state: "{{ item.state | d('present') }}"
   loop: "{{ docker__registries }}"
   loop_control:
-    label: '{{ {"registry_url": item.registry_url | d("https://index.docker.io/v1/"), "username": item.username, "state": item.state | d("present")} }}'
+    label: '{{ {"registry_url": item.registry_url | d("https://index.docker.io/v1/"), "username": item.username, "state": item.state | d("present")} }}'  # yamllint disable-line rule:line-length
   when: item.username | d() and item.password | d()
   become: true
   become_user: "{{ docker__login_become_user | d('root') }}"

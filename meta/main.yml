@@ -1,6 +1,7 @@
 ---
 
 galaxy_info:
+  namespace: "nickjj"
   role_name: "docker"
   author: "Nick Janetakis"
   description: "Install and configure Docker / Docker Compose."
@@ -14,8 +15,8 @@ galaxy_info:
         - "jammy"
     - name: "Debian"
       versions:
-        - "buster"
         - "bullseye"
+        - "bookworm"
 
   galaxy_tags:
     - "containers"
