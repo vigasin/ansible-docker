@@ -53,9 +53,15 @@
     group: "root"
     mode: "0644"
 
+- name: De-armor Docker's APT repository key
+  ansible.builtin.shell:
+    cmd: gpg --dearmor -y -o /etc/apt/keyrings/docker.gpg /etc/apt/keyrings/docker.asc
+    creates: /etc/apt/keyrings/docker.gpg
+
 - name: Configure Docker's upstream APT repository
   ansible.builtin.apt_repository:
     repo: "{{ docker__apt_repository }}"
+    filename: "docker"
     update_cache: true
 
 - name: Create Docker configuration directories
