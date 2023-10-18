@@ -19,7 +19,7 @@ docker__default_daemon_json: |
   "tlscacert": "/etc/docker/ca.pem",
   "tlscert": "/etc/docker/server.pem",
   "tlskey": "/etc/docker/server-key.pem",
-  "hosts": ["fd://", "tcp://0.0.0.0:2376"],
+  "hosts": ["unix://", "tcp://0.0.0.0:2376"],
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "100m",
