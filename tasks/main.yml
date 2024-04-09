@@ -55,7 +55,7 @@
 
 - name: De-armor Docker's APT repository key
   ansible.builtin.shell:
-    cmd: gpg --dearmor -y -o /etc/apt/keyrings/docker.gpg /etc/apt/keyrings/docker.asc
+    cmd: gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg /etc/apt/keyrings/docker.asc
     creates: /etc/apt/keyrings/docker.gpg
 
 - name: Configure Docker's upstream APT repository
